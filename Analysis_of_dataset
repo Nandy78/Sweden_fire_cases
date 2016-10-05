@@ -1,7 +1,7 @@
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
-
+library(plotly)
 
 #Our dataset
 dataset <- read.csv("school_fire_cases_1998_2014.csv", header = T, stringsAsFactors = F) 
@@ -14,12 +14,12 @@ summary(dataset)
 dataset2 <- dataset %>% filter(!is.na(Cases) & Cases > 0)
 dat <- as.data.frame(table(dataset2$Year))
 mun <- ggplot(dat, aes(y = Freq, x = Var1, group = 1)) + geom_line(linetype = 1, size = 1, col = "red") + geom_point(shape = 20, size = 3, fill = "white") + theme_dark() + xlab("years") + ylab("number of Municipalities") + scale_x_discrete(breaks = seq(from= 1998, to = 2014, by= 1)) + ggtitle("Total number of Municpalities with at least one case every year")
-mun
+ggplotly(mun)
 
 #This plot tells us total number of fire cases from all the 290 municipalities over the years.
 year <- dataset  %>% group_by(Year) %>% summarise(Count = sum(Cases))
 year.plot <- ggplot(year, aes(y = Count, x = Year, group = 1)) + geom_line(linetype = 1, size = 1, col = "red") + geom_point(shape = 20, size = 3, fill = "white") + theme_dark() + xlab("years") + ylab("number of Cases") + scale_x_continuous(breaks = seq(from= 1998, to = 2014, by= 1)) + ggtitle("Total number of cases per Year")
-year.plot
+ggplotly(year.plot)
 
 #Now we look at the combined plot.
 grid.arrange(year.plot, mun, nrow = 2, ncol = 1)
@@ -33,6 +33,13 @@ grid.arrange(year.plot, mun, nrow = 2, ncol = 1)
 #from where they can learn and apply the same steps on other municipalities.
 #Though this is not enough and we should look for other ways to decrease the total fire cases
 
+#Now we look at Municipalities.
+municipality <- dataset %>% group_by(Municipality) %>% summarise(Total = sum(Cases)) %>% arrange(desc(Total))
+mun2 <- ggplot(head(municipality, 20)) + geom_bar(mapping = aes(x = reorder(factor(Municipality), Total), y = Total, fill = Total), stat = "identity") + labs(x = "Municipality", y = "Total cases", title = "Total cases of top 20 municipality over the years") + coord_flip()
+ggplotly(mun2)
+#We have to see how many of these municipalities with high cases have remained on top in the year 2014 also.
+
+
 #I wanted to know that does the increase in population explains the increase in fire cases.
 #So i compared the figures of population of years equidistant from each other and looked at their
 #respective fire Cases
@@ -40,31 +47,28 @@ grid.arrange(year.plot, mun, nrow = 2, ncol = 1)
 #Year-1998
 data <- dataset %>% filter(Year == 1998)
 summary(data)
-#we don't need any municipality with fire case less than zero, so we exclude them.
-d1 <- data %>% filter(Cases > 0)
+
 
 #Year-2006
 data1 <- dataset %>% filter(Year == 2006)
 summary(data1)
-d2 <- data1 %>% filter(Cases > 0)
 
 #Year-2014
 data2 <- dataset %>% filter(Year == 2014)
 data2$Diff <- data2$Population - data$Population
-d3 <- data2 %>% filter(Cases > 0)
 
 data1$Diff <- data1$Population - data$Population
 
 #we look at number of cases while the population increased in the respective municipalities
 popIncrease <- data1 %>% filter(Diff > 0)
 y <- ggplot(popIncrease, aes(x = Cases)) + geom_histogram(stat = "bin", fill = "black", col = "white") + ggtitle("The number of cases as the population increased")
-y
+ggplotly(y)
 
 #we look at number of cases while the population decreased in the respective municipalities.
 popDecrease <- data1 %>% filter(Diff < 0)
 x <- ggplot(popDecrease, aes(x = Cases)) + geom_histogram(stat = "bin", fill = "black", col = "white") + ggtitle("The number of cases as the population decreased")
 x
-
+ggplotly(x)
 #now we look at the combined plot.
 grid.arrange(y, x, nrow = 2)
 
@@ -90,13 +94,14 @@ importantMunicipalities <- extr[c(32, 34, 39, 40, 42, 44, 45, 47, 2, 4, 7, 8, 10
 importantMunicipalities <- arrange(importantMunicipalities, desc(Cases))
 #we can also say that these are the municipalities that contributed most to the extent of fire case from 1998 to 2014.
 #So even if the swedish government didn't take any step and the sudden decrease in 
-#number of cases isn't explained by any external factor, still these municipalities should be looked on priority basis.
+#number of cases isn't explained by any external factor, still these municipalities should be looked over on priority basis.
 
-ggplot(importantMunicipalities, aes(x = reorder(factor(Municipality), Cases), y = Cases)) + geom_bar(stat = "identity", fill = "blue") + theme_get() + coord_flip() + labs(x = "Municipality", y = "Number of cases") + ggtitle("Municipalities for priority basis")
-
+impMun <-ggplot(importantMunicipalities) + geom_bar(stat = "identity", aes(x = reorder(factor(Municipality), Cases), y = Cases, fill = Cases)) + theme_get() + coord_flip() + labs(x = "Municipality", y = "Number of cases") + ggtitle("Municipalities for priority basis")
+ggplotly(impMun)
 #the municipalities from where the governement should learn and apply the same 
 #procedures or steps, if they have, to not only the municipalities on priority but
 #also to other municipalities.
 learnigMunicipalities <- extr[-c(32, 34, 39, 40, 42, 44, 45, 47, 2, 4, 7, 8, 10, 11, 12, 14, 15, 17, 19, 21, 23, 24, 26, 27, 28),]
 
-ggplot(learnigMunicipalities, aes(x = reorder(factor(Municipality), Cases), y = Cases)) + geom_bar(stat = "identity", fill = "blue") + theme_get() + coord_flip() + labs(x = "Municipality", y = "Number of cases") + ggtitle("Municipalities for learning")
+leaMun <- ggplot(learnigMunicipalities, aes(x = reorder(factor(Municipality), Cases), y = Cases)) + geom_bar(stat = "identity", fill = "blue") + theme_get() + coord_flip() + labs(x = "Municipality", y = "Number of cases") + ggtitle("Municipalities for learning")
+ggplotly(leaMun)
